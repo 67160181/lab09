@@ -1,106 +1,28 @@
 // ================================
-// Pomodoro Timer App
+//  Weather App with Fetch API
 // ================================
 
-// 📊 State
+// State
 let state = {
-  isRunning: false,
-  isWorkPhase: true,
-  timeLeft: 25 * 60, // วินาที
-  totalTime: 25 * 60,
-  currentSession: 1,
-  completedSessions: 0,
-  intervalId: null,
-  workDuration: 25 * 60,
-  breakDuration: 5 * 60,
-  longBreakDuration: 15 * 60,
+  currentCity: null,
+  latitude: null,
+  longitude: null,
+  recentCities: JSON.parse(localStorage.getItem("recentCities")) || [],
+  autoRefreshInterval: null,
 };
 
-// DOM Elements
-const timeDisplay = document.getElementById("timeDisplay");
-const startBtn = document.getElementById("startBtn");
-const resetBtn = document.getElementById("resetBtn");
-const progressBar = document.getElementById("progressBar");
-const phaseDisplay = document.getElementById("phase");
-const timerDisplay = document.getElementById("timerDisplay");
-const currentSessionDisplay = document.getElementById("currentSession");
-const workTimeInput = document.getElementById("workTime");
-const breakTimeInput = document.getElementById("breakTime");
-const completedCountDisplay = document.getElementById("completedCount");
-const totalTimeDisplay = document.getElementById("totalTime");
+// 🎯 DOM Elements
+const cityInput = document.getElementById("cityInput");
+const searchBtn = document.getElementById("searchBtn");
+const weatherContainer = document.getElementById("weatherContainer");
+const loading = document.getElementById("loading");
+const errorMsg = document.getElementById("errorMsg");
+const emptyState = document.getElementById("emptyState");
+const recentCitiesDiv = document.getElementById("recentCities");
 
 // ================================
 // 🔧 Helper Functions
 // ================================
-
-function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-function updateDisplay() {
-  timeDisplay.textContent = formatTime(state.timeLeft);
-  currentSessionDisplay.textContent = state.currentSession;
-
-  // อัปเดต Progress Bar
-  const progress = ((state.totalTime - state.timeLeft) / state.totalTime) * 100;
-  progressBar.style.width = progress + "%";
-
-  // อัปเดต Phase
-  if (state.isWorkPhase) {
-    phaseDisplay.textContent = "🔴 Work";
-    phaseDisplay.className = "phase work";
-    timerDisplay.classList.remove("break");
-    timerDisplay.classList.add("work");
-  } else {
-    phaseDisplay.textContent = "🟢 Break";
-    phaseDisplay.className = "phase break";
-    timerDisplay.classList.remove("work");
-    timerDisplay.classList.add("break");
-  }
-
-  // อัปเดต Button
-  if (state.isRunning) {
-    startBtn.textContent = "⏸️ หยุด";
-    startBtn.classList.add("running");
-  } else {
-    startBtn.textContent = "▶️ เริ่ม";
-    startBtn.classList.remove("running");
-  }
-
-  // อัปเดต Stats
-  const totalMinutes = Math.floor(
-    (state.completedSessions * state.workDuration) / 60,
-  );
-  totalTimeDisplay.textContent = totalMinutes + " min";
-  completedCountDisplay.textContent = state.completedSessions;
-}
-
-function playNotification() {
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-
-  if (state.isWorkPhase) {
-    oscillator.frequency.value = 800;
-  } else {
-    oscillator.frequency.value = 1200;
-  }
-
-  oscillator.type = "sine";
-  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(
-    0.01,
-    audioContext.currentTime + 0.5,
-  );
-
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.5);
-}
 
 function showNotification(message) {
   const notification = document.createElement("div");
@@ -113,116 +35,277 @@ function showNotification(message) {
   }, 3000);
 }
 
-// ================================
-// 🎬 Timer Functions
-// ================================
-
-function startTimer() {
-  if (state.isRunning) {
-    // Pause
-    clearInterval(state.intervalId);
-    state.isRunning = false;
-  } else {
-    // Start
-    state.isRunning = true;
-
-    state.intervalId = setInterval(() => {
-      state.timeLeft--;
-
-      // ✅ ถ้าหมดเวลา
-      if (state.timeLeft <= 0) {
-        clearInterval(state.intervalId);
-        state.isRunning = false;
-
-        playNotification();
-
-        // Switch Phase
-        if (state.isWorkPhase) {
-          // หลังจบ Work
-          state.completedSessions++;
-          showNotification("✅ Work Complete! Time for Break!");
-
-          // ตรวจสอบว่าเสร็จ 4 รอบหรือยัง
-          if (state.currentSession % 4 === 0) {
-            // Long Break
-            state.breakDuration = state.longBreakDuration;
-            showNotification("🎉 Long Break 15 minutes!");
-          } else {
-            state.breakDuration = parseInt(breakTimeInput.value) * 60;
-          }
-
-          state.isWorkPhase = false;
-          state.timeLeft = state.breakDuration;
-          state.totalTime = state.breakDuration;
-        } else {
-          // หลังจบ Break
-          state.isWorkPhase = true;
-          state.currentSession++;
-
-          if (state.currentSession <= 4) {
-            state.workDuration = parseInt(workTimeInput.value) * 60;
-            state.timeLeft = state.workDuration;
-            state.totalTime = state.workDuration;
-            showNotification(`Session ${state.currentSession} Started!`);
-          } else {
-            // หมดครบ 4 รอบแล้ว
-            state.currentSession = 1;
-            state.workDuration = parseInt(workTimeInput.value) * 60;
-            state.timeLeft = state.workDuration;
-            state.totalTime = state.workDuration;
-            showNotification("🎊 All sessions completed! Great job!");
-          }
-        }
-      }
-
-      updateDisplay();
-    }, 1000);
-  }
-
-  updateDisplay();
+function showLoading() {
+  loading.classList.add("show");
+  errorMsg.classList.remove("show");
 }
 
-function resetTimer() {
-  clearInterval(state.intervalId);
-  state.isRunning = false;
-  state.isWorkPhase = true;
-  state.currentSession = 1;
-  state.workDuration = parseInt(workTimeInput.value) * 60;
-  state.timeLeft = state.workDuration;
-  state.totalTime = state.workDuration;
+function hideLoading() {
+  loading.classList.remove("show");
+}
 
-  updateDisplay();
-  showNotification("🔄 Timer Reset!");
+function showError(message) {
+  errorMsg.textContent = "❌ " + message;
+  errorMsg.classList.add("show");
+  weatherContainer.classList.remove("show");
+  emptyState.style.display = "block";
+}
+
+function getCurrentTime() {
+  const now = new Date();
+  return now.toLocaleString("th-TH", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ================================
+// 🌍 Geocoding Functions
+// ================================
+
+// ดึง Latitude/Longitude จากชื่อเมือง
+async function geocodeCity(cityName) {
+  try {
+    showLoading();
+
+    const response = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+        cityName,
+      )}&count=1&language=en&format=json`,
+    );
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const data = await response.json();
+
+    if (!data.results || data.results.length === 0) {
+      throw new Error("ไม่พบเมืองนี้");
+    }
+
+    const location = data.results[0];
+    return {
+      name: location.name,
+      country: location.country,
+      latitude: location.latitude,
+      longitude: location.longitude,
+    };
+  } catch (error) {
+    showError(error.message);
+    throw error;
+  }
+}
+
+// ================================
+// 🌡️ Weather Functions
+// ================================
+
+// ดึงข้อมูลสภาพอากาศ
+async function fetchWeather(latitude, longitude, cityInfo) {
+  try {
+    showLoading();
+
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,visibility&timezone=auto&hourly=temperature_2m`,
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch weather data");
+    }
+
+    const data = await response.json();
+    hideLoading();
+
+    // อัปเดต State
+    state.currentCity = cityInfo;
+    state.latitude = latitude;
+    state.longitude = longitude;
+
+    // บันทึก recent cities
+    saveRecentCity(cityInfo);
+
+    // แสดงผลข้อมูล
+    displayWeather(data, cityInfo);
+  } catch (error) {
+    showError(error.message);
+  }
+}
+
+// ================================
+// 🎨 Display Functions
+// ================================
+
+function getWeatherDescription(code) {
+  const weatherCodes = {
+    0: "☀️ ท้องฟ้าแจ่มใส",
+    1: "🌤️ เมฆเล็กน้อย",
+    2: "⛅ เมฆครึ่งหนึ่ง",
+    3: "☁️ เมฆมาก",
+    45: "🌫️ หมอก",
+    48: "🌫️ หมอก",
+    51: "🌧️ ฝนเล็กน้อย",
+    53: "🌧️ ฝนปานกลาง",
+    55: "🌧️ ฝนหนัก",
+    61: "🌧️ ฝนเล็กน้อย",
+    63: "🌧️ ฝนปานกลาง",
+    65: "⛈️ ฝนหนัก",
+    71: "❄️ หิมะเล็กน้อย",
+    73: "❄️ หิมะปานกลาง",
+    75: "❄️ หิมะหนัก",
+    80: " ฝนแต่อากาศส่วนใหญ่ปกติ",
+    81: "⛈️ ฝนเล็กน้อย",
+    82: "⛈️ ฝนหนัก",
+    85: "🌨️ หิมะและฝนปนกัน",
+    86: "🌨️ หิมะหนัก",
+    95: "⛈️ พายุฝนฟ้าคะนอง",
+    96: "⛈️ พายุฝนฟ้าคะนอง",
+    99: "⛈️ พายุฝนฟ้าคะนองหนัก",
+  };
+  return weatherCodes[code] || "🌍 สภาพอากาศไม่ชัดเจน";
+}
+
+function displayWeather(data, cityInfo) {
+  const current = data.current;
+  const hourly = data.hourly;
+
+  // Update Header
+  document.getElementById("cityName").textContent =
+    `${cityInfo.name}, ${cityInfo.country}`;
+  document.getElementById("updateTime").textContent =
+    `📍 อัปเดตเมื่อ ${getCurrentTime()}`;
+
+  // Update Temperature
+  const description = getWeatherDescription(current.weather_code);
+  document.getElementById("description").textContent = description;
+  document.getElementById("temperature").textContent =
+    Math.round(current.temperature_2m) + "°C";
+  document.getElementById("feelsLike").textContent =
+    `รู้สึก ${Math.round(current.apparent_temperature)}°C`;
+
+  // Update Details
+  document.getElementById("humidity").textContent =
+    current.relative_humidity_2m + "%";
+  document.getElementById("windSpeed").textContent =
+    current.wind_speed_10m + " m/s";
+  document.getElementById("pressure").textContent =
+    current.pressure_msl + " hPa";
+  document.getElementById("visibility").textContent =
+    (current.visibility / 1000).toFixed(1) + " km";
+
+  // Display Hourly Forecast
+  displayHourlyForecast(hourly);
+
+  // Show Weather Container
+  weatherContainer.classList.add("show");
+  emptyState.style.display = "none";
+  errorMsg.classList.remove("show");
+}
+
+function displayHourlyForecast(hourly) {
+  const hourlyList = document.getElementById("hourlyList");
+  const hourlySection = document.getElementById("hourlySection");
+
+  hourlyList.innerHTML = "";
+
+  // ดึงเฉพาะ 24 ชั่วโมงแรก
+  for (let i = 0; i < 24; i += 3) {
+    const time = hourly.time[i];
+    const temp = hourly.temperature_2m[i];
+
+    const hour = new Date(time).getHours();
+    const hourlyItem = document.createElement("div");
+    hourlyItem.className = "hourly-item";
+    hourlyItem.innerHTML = `
+          <div class="hourly-time">${hour}:00</div>
+          <div class="hourly-temp">${Math.round(temp)}°</div>
+        `;
+
+    hourlyList.appendChild(hourlyItem);
+  }
+
+  hourlySection.style.display = "block";
+}
+
+// ================================
+// 💾 LocalStorage Functions
+// ================================
+
+function saveRecentCity(cityInfo) {
+  // ลบซ้ำ
+  state.recentCities = state.recentCities.filter(
+    (city) => city.name !== cityInfo.name,
+  );
+
+  // เพิ่มหน้า
+  state.recentCities.unshift(cityInfo);
+
+  // เก็บแค่ 5 เมืองล่าสุด
+  if (state.recentCities.length > 5) {
+    state.recentCities.pop();
+  }
+
+  localStorage.setItem("recentCities", JSON.stringify(state.recentCities));
+  renderRecentCities();
+}
+
+function renderRecentCities() {
+  recentCitiesDiv.innerHTML = "";
+
+  if (state.recentCities.length === 0) return;
+
+  const label = document.createElement("div");
+  label.style.width = "100%";
+  label.style.fontSize = "12px";
+  label.style.color = "#999";
+  label.style.marginBottom = "10px";
+  label.style.textTransform = "uppercase";
+  label.textContent = "🕐 ค้นหาล่าสุด:";
+  recentCitiesDiv.appendChild(label);
+
+  state.recentCities.forEach((city) => {
+    const tag = document.createElement("div");
+    tag.className = "city-tag";
+    tag.textContent = city.name;
+    tag.addEventListener("click", async () => {
+      await fetchWeather(city.latitude, city.longitude, city);
+    });
+    recentCitiesDiv.appendChild(tag);
+  });
 }
 
 // ================================
 // 🎬 Event Listeners
 // ================================
 
-startBtn.addEventListener("click", startTimer);
-resetBtn.addEventListener("click", resetTimer);
+async function searchCity() {
+  const cityName = cityInput.value.trim();
 
-workTimeInput.addEventListener("change", () => {
-  if (!state.isRunning) {
-    state.workDuration = parseInt(workTimeInput.value) * 60;
-    if (state.isWorkPhase) {
-      state.timeLeft = state.workDuration;
-      state.totalTime = state.workDuration;
-      updateDisplay();
-    }
+  if (!cityName) {
+    showError("กรุณากรอกชื่อเมือง");
+    return;
   }
-});
 
-breakTimeInput.addEventListener("change", () => {
-  if (!state.isRunning) {
-    state.breakDuration = parseInt(breakTimeInput.value) * 60;
-    if (!state.isWorkPhase) {
-      state.timeLeft = state.breakDuration;
-      state.totalTime = state.breakDuration;
-      updateDisplay();
-    }
+  try {
+    const cityInfo = await geocodeCity(cityName);
+    await fetchWeather(cityInfo.latitude, cityInfo.longitude, cityInfo);
+    cityInput.value = "";
+    showNotification(`✅ ค้นหา ${cityInfo.name} สำเร็จ`);
+  } catch (error) {
+    // Error already shown in geocodeCity
+  }
+}
+
+searchBtn.addEventListener("click", searchCity);
+
+cityInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    searchCity();
   }
 });
 
 // Initialize
-updateDisplay();
+renderRecentCities();
