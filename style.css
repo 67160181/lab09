@@ -8,175 +8,270 @@ body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #eee 0%, #eee 100%);
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 20px;
 }
 
 .container {
-  max-width: 600px;
-  margin: 0 auto;
   background: white;
-  border-radius: 15px;
-  padding: 30px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  padding: 50px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
 }
 
 h1 {
-  text-align: center;
   color: #333;
-  margin-bottom: 30px;
-  font-size: 28px;
+  margin-bottom: 10px;
+  font-size: 32px;
 }
 
-.input-group {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-#taskInput {
-  flex: 1;
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.3s;
-}
-
-#taskInput:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-#addBtn {
-  padding: 12px 30px;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: background 0.3s;
-}
-
-#addBtn:hover {
-  background: #5568d3;
-}
-
-#addBtn:active {
-  transform: scale(0.98);
-}
-
-.task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.task-item {
-  background: #f8f9fa;
-  border-left: 5px solid #667eea;
-  padding: 15px;
-  border-radius: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.3s;
-}
-
-.task-item:hover {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.task-item.completed {
-  opacity: 0.6;
-  border-left-color: #28a745;
-}
-
-.task-item.completed .task-name {
-  text-decoration: line-through;
+.subtitle {
   color: #999;
+  margin-bottom: 30px;
+  font-size: 16px;
 }
 
-.task-info {
-  flex: 1;
+.timer-display {
+  background: linear-gradient(135deg, #123456 0%, #123456 100%);
+  color: white;
+  border-radius: 15px;
+  padding: 40px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
 }
 
-.task-name {
-  font-size: 18px;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 5px;
+.phase {
+  font-size: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.8;
 }
 
-.task-timer {
-  font-size: 24px;
-  color: #667eea;
+.phase.work {
+  color: #ff6b6b;
+}
+
+.phase.break {
+  color: #51cf66;
+}
+
+.time {
+  font-size: 80px;
   font-weight: bold;
   font-family: "Courier New", monospace;
+  letter-spacing: 5px;
+  line-height: 1;
+  margin: 20px 0;
 }
 
-.task-timer.warning {
-  color: #ff9800;
+.sessions {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-top: 10px;
 }
 
-.task-timer.danger {
-  color: #f44336;
+/* Progress Bar */
+.progress-container {
+  background: #e0e0e0;
+  border-radius: 10px;
+  height: 8px;
+  margin-bottom: 30px;
+  overflow: hidden;
 }
 
-.task-controls {
+.progress-bar {
+  background: linear-gradient(90deg, #ffff00 0%, #00ff00 100%);
+  height: 100%;
+  width: 100%;
+  transition: width 0.3s ease;
+}
+
+/* Controls */
+.controls {
   display: flex;
-  gap: 10px;
-  margin-left: 15px;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
 }
 
 button {
-  padding: 8px 15px;
+  padding: 12px 30px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: bold;
   transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .btn-start {
   background: #28a745;
   color: white;
+  flex: 1;
+  min-width: 120px;
 }
 
 .btn-start:hover {
   background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
 }
 
-.btn-start:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.btn-pause {
+.btn-start.running {
   background: #ff9800;
-  color: white;
 }
 
-.btn-pause:hover {
+.btn-start.running:hover {
   background: #e68900;
 }
 
-.btn-delete {
-  background: #f44336;
+.btn-reset {
+  background: #dc3545;
   color: white;
+  flex: 1;
+  min-width: 120px;
 }
 
-.btn-delete:hover {
-  background: #da190b;
+.btn-reset:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
 }
 
-.empty-message {
+.btn-reset:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Settings */
+.settings {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 25px;
+  border: 2px dashed #ddd;
+}
+
+.settings-title {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.setting-item {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.setting-label {
+  color: #666;
+  font-size: 12px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.setting-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
   text-align: center;
+  font-weight: bold;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+}
+
+/* Stats */
+.stats {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-item {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.stat-label {
   color: #999;
-  padding: 40px;
-  font-size: 18px;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  color: #667eea;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.timer-display.work {
+  animation: pulse 2s infinite;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .container {
+    padding: 30px 20px;
+  }
+
+  .time {
+    font-size: 60px;
+    letter-spacing: 3px;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  .btn-start,
+  .btn-reset {
+    width: 100%;
+  }
 }
 
 .notification {
@@ -200,19 +295,5 @@ button {
   to {
     transform: translateX(0);
     opacity: 1;
-  }
-}
-
-.alarm {
-  animation: blink 0.5s infinite;
-}
-
-@keyframes blink {
-  0%,
-  100% {
-    background: #f44336;
-  }
-  50% {
-    background: #d32f2f;
   }
 }

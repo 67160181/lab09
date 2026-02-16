@@ -1,28 +1,107 @@
 // ================================
-// Task Timer App
+// Pomodoro Timer App
 // ================================
 
-// Data structure
-let tasks = [];
-let taskId = 0;
+// 📊 State
+let state = {
+  isRunning: false,
+  isWorkPhase: true,
+  timeLeft: 25 * 60, // วินาที
+  totalTime: 25 * 60,
+  currentSession: 1,
+  completedSessions: 0,
+  intervalId: null,
+  workDuration: 25 * 60,
+  breakDuration: 5 * 60,
+  longBreakDuration: 15 * 60,
+};
 
 // DOM Elements
-const taskInput = document.getElementById("taskInput");
-const addBtn = document.getElementById("addBtn");
-const taskList = document.getElementById("taskList");
+const timeDisplay = document.getElementById("timeDisplay");
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const progressBar = document.getElementById("progressBar");
+const phaseDisplay = document.getElementById("phase");
+const timerDisplay = document.getElementById("timerDisplay");
+const currentSessionDisplay = document.getElementById("currentSession");
+const workTimeInput = document.getElementById("workTime");
+const breakTimeInput = document.getElementById("breakTime");
+const completedCountDisplay = document.getElementById("completedCount");
+const totalTimeDisplay = document.getElementById("totalTime");
 
 // ================================
-// Helper Functions
+// 🔧 Helper Functions
 // ================================
 
-// ฟังก์ชันแปลงเวลา (วินาที → นาที:วินาที)
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-// แสดง notification
+function updateDisplay() {
+  timeDisplay.textContent = formatTime(state.timeLeft);
+  currentSessionDisplay.textContent = state.currentSession;
+
+  // อัปเดต Progress Bar
+  const progress = ((state.totalTime - state.timeLeft) / state.totalTime) * 100;
+  progressBar.style.width = progress + "%";
+
+  // อัปเดต Phase
+  if (state.isWorkPhase) {
+    phaseDisplay.textContent = "🔴 Work";
+    phaseDisplay.className = "phase work";
+    timerDisplay.classList.remove("break");
+    timerDisplay.classList.add("work");
+  } else {
+    phaseDisplay.textContent = "🟢 Break";
+    phaseDisplay.className = "phase break";
+    timerDisplay.classList.remove("work");
+    timerDisplay.classList.add("break");
+  }
+
+  // อัปเดต Button
+  if (state.isRunning) {
+    startBtn.textContent = "⏸️ หยุด";
+    startBtn.classList.add("running");
+  } else {
+    startBtn.textContent = "▶️ เริ่ม";
+    startBtn.classList.remove("running");
+  }
+
+  // อัปเดต Stats
+  const totalMinutes = Math.floor(
+    (state.completedSessions * state.workDuration) / 60,
+  );
+  totalTimeDisplay.textContent = totalMinutes + " min";
+  completedCountDisplay.textContent = state.completedSessions;
+}
+
+function playNotification() {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  if (state.isWorkPhase) {
+    oscillator.frequency.value = 800;
+  } else {
+    oscillator.frequency.value = 1200;
+  }
+
+  oscillator.type = "sine";
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(
+    0.01,
+    audioContext.currentTime + 0.5,
+  );
+
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+}
+
 function showNotification(message) {
   const notification = document.createElement("div");
   notification.className = "notification";
@@ -34,154 +113,116 @@ function showNotification(message) {
   }, 3000);
 }
 
-// เล่นเสียง alarm
-function playAlarm() {
-  // ใช้ Web Audio API เพื่อสร้างเสียง
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-
-  oscillator.frequency.value = 800; // ความถี่ 800 Hz
-  oscillator.type = "sine";
-
-  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(
-    0.01,
-    audioContext.currentTime + 0.5,
-  );
-
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.5);
-}
-
 // ================================
-// Task Functions
+// 🎬 Timer Functions
 // ================================
 
-// เพิ่ม task ใหม่
-function addTask() {
-  const taskName = taskInput.value.trim();
-
-  if (!taskName) {
-    alert("กรุณากรอก task");
-    return;
-  }
-
-  const task = {
-    id: taskId++,
-    name: taskName,
-    duration: 30 * 60, // 30 นาที (เป็นวินาที)
-    timeLeft: 30 * 60,
-    isRunning: false,
-    intervalId: null,
-  };
-
-  tasks.push(task);
-  taskInput.value = "";
-  renderTasks();
-  showNotification(`เพิ่ม task: ${taskName}`);
-}
-
-// ลบ task
-function deleteTask(id) {
-  tasks = tasks.filter((task) => task.id !== id);
-  renderTasks();
-  showNotification("ลบ task แล้ว");
-}
-
-// เริ่ม/หยุด timer
-function toggleTimer(id) {
-  const task = tasks.find((t) => t.id === id);
-  if (!task) return;
-
-  if (task.isRunning) {
-    // หยุด timer
-    clearInterval(task.intervalId);
-    task.isRunning = false;
+function startTimer() {
+  if (state.isRunning) {
+    // Pause
+    clearInterval(state.intervalId);
+    state.isRunning = false;
   } else {
-    // เริ่ม timer
-    task.isRunning = true;
+    // Start
+    state.isRunning = true;
 
-    task.intervalId = setInterval(() => {
-      task.timeLeft--;
+    state.intervalId = setInterval(() => {
+      state.timeLeft--;
 
-      // ถ้าหมดเวลา
-      if (task.timeLeft <= 0) {
-        clearInterval(task.intervalId);
-        task.isRunning = false;
-        task.timeLeft = 0;
+      // ✅ ถ้าหมดเวลา
+      if (state.timeLeft <= 0) {
+        clearInterval(state.intervalId);
+        state.isRunning = false;
 
-        playAlarm();
-        showNotification(`🎉 เสร็จ! "${task.name}"`);
+        playNotification();
+
+        // Switch Phase
+        if (state.isWorkPhase) {
+          // หลังจบ Work
+          state.completedSessions++;
+          showNotification("✅ Work Complete! Time for Break!");
+
+          // ตรวจสอบว่าเสร็จ 4 รอบหรือยัง
+          if (state.currentSession % 4 === 0) {
+            // Long Break
+            state.breakDuration = state.longBreakDuration;
+            showNotification("🎉 Long Break 15 minutes!");
+          } else {
+            state.breakDuration = parseInt(breakTimeInput.value) * 60;
+          }
+
+          state.isWorkPhase = false;
+          state.timeLeft = state.breakDuration;
+          state.totalTime = state.breakDuration;
+        } else {
+          // หลังจบ Break
+          state.isWorkPhase = true;
+          state.currentSession++;
+
+          if (state.currentSession <= 4) {
+            state.workDuration = parseInt(workTimeInput.value) * 60;
+            state.timeLeft = state.workDuration;
+            state.totalTime = state.workDuration;
+            showNotification(`Session ${state.currentSession} Started!`);
+          } else {
+            // หมดครบ 4 รอบแล้ว
+            state.currentSession = 1;
+            state.workDuration = parseInt(workTimeInput.value) * 60;
+            state.timeLeft = state.workDuration;
+            state.totalTime = state.workDuration;
+            showNotification("🎊 All sessions completed! Great job!");
+          }
+        }
       }
 
-      renderTasks();
-    }, 1000); // อัปเดตทุกๆ 1 วินาที
+      updateDisplay();
+    }, 1000);
   }
 
-  renderTasks();
+  updateDisplay();
+}
+
+function resetTimer() {
+  clearInterval(state.intervalId);
+  state.isRunning = false;
+  state.isWorkPhase = true;
+  state.currentSession = 1;
+  state.workDuration = parseInt(workTimeInput.value) * 60;
+  state.timeLeft = state.workDuration;
+  state.totalTime = state.workDuration;
+
+  updateDisplay();
+  showNotification("🔄 Timer Reset!");
 }
 
 // ================================
-// Render UI
+// 🎬 Event Listeners
 // ================================
 
-function renderTasks() {
-  if (tasks.length === 0) {
-    taskList.innerHTML = '<div class="empty-message">ยังไม่มี task 😴</div>';
-    return;
-  }
+startBtn.addEventListener("click", startTimer);
+resetBtn.addEventListener("click", resetTimer);
 
-  taskList.innerHTML = tasks
-    .map((task) => {
-      const isCompleted = task.timeLeft === 0;
-      const isWarning = task.timeLeft < 60 && task.timeLeft > 0;
-      const isDanger = task.timeLeft < 30 && task.timeLeft > 0;
-
-      let timerClass = "";
-      if (isDanger) timerClass = "danger";
-      else if (isWarning) timerClass = "warning";
-
-      return `
-        <div class="task-item ${isCompleted ? "completed" : ""}">
-          <div class="task-info">
-            <div class="task-name">${task.name}</div>
-            <div class="task-timer ${timerClass}">
-              ${formatTime(task.timeLeft)}
-            </div>
-          </div>
-          <div class="task-controls">
-            <button
-              class="btn-start ${task.isRunning ? "btn-pause" : ""}"
-              onclick="toggleTimer(${task.id})"
-              ${isCompleted ? "disabled" : ""}
-            >
-              ${task.isRunning ? "⏸️ หยุด" : "▶️ เริ่ม"}
-            </button>
-            <button class="btn-delete" onclick="deleteTask(${task.id})">
-              ลบ
-            </button>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-}
-
-// ================================
-// Event Listeners
-// ================================
-
-addBtn.addEventListener("click", addTask);
-
-taskInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    addTask();
+workTimeInput.addEventListener("change", () => {
+  if (!state.isRunning) {
+    state.workDuration = parseInt(workTimeInput.value) * 60;
+    if (state.isWorkPhase) {
+      state.timeLeft = state.workDuration;
+      state.totalTime = state.workDuration;
+      updateDisplay();
+    }
   }
 });
 
-// เริ่มต้น
-renderTasks();
+breakTimeInput.addEventListener("change", () => {
+  if (!state.isRunning) {
+    state.breakDuration = parseInt(breakTimeInput.value) * 60;
+    if (!state.isWorkPhase) {
+      state.timeLeft = state.breakDuration;
+      state.totalTime = state.breakDuration;
+      updateDisplay();
+    }
+  }
+});
+
+// Initialize
+updateDisplay();

@@ -3,29 +3,68 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Task Timer App</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Pomodoro Timer</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="container">
-      <h1>Task Timer</h1>
+      <h1>Pomodoro Timer</h1>
+      <p class="subtitle">โฟกัสให้เต็มที่ 25 นาที!</p>
 
-      <div class="input-group">
-        <input
-          type="text"
-          id="taskInput"
-          placeholder="เพิ่ม task ใหม่..."
-          autocomplete="off"
-        />
-        <button id="addBtn">เพิ่ม</button>
+      <div class="timer-display work" id="timerDisplay">
+        <div class="phase work" id="phase">Work</div>
+        <div class="time" id="timeDisplay">25:00</div>
+        <div class="sessions">Session <span id="currentSession">1</span>/4</div>
       </div>
 
-      <div id="taskList" class="task-list">
-        <div class="empty-message">ยังไม่มี task 😴</div>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn-start" id="startBtn">▶️ เริ่ม</button>
+        <button class="btn-reset" id="resetBtn">🔄 รีเซ็ต</button>
+      </div>
+
+      <div class="settings">
+        <div class="settings-title">⚙️ ตั้งค่า</div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <div class="setting-label">Work Time (นาที)</div>
+            <input
+              type="number"
+              id="workTime"
+              class="setting-input"
+              value="25"
+              min="1"
+              max="60"
+            />
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Break Time (นาที)</div>
+            <input
+              type="number"
+              id="breakTime"
+              class="setting-input"
+              value="5"
+              min="1"
+              max="30"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-label">✅ Completed</div>
+          <div class="stat-value" id="completedCount">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Total Time</div>
+          <div class="stat-value" id="totalTime">0 min</div>
+        </div>
       </div>
     </div>
-
     <script src="app.js"></script>
   </body>
 </html>
